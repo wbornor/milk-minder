@@ -5,6 +5,9 @@
 #define PIN_LED           13
 #define PIN_THING_RX      3
 #define PIN_THING_TX      2
+#define MIN_THRESHOLD     30
+#define LOW_MARK          1080
+#define HIGH_MARK          1275
 
 SmartThingsCallout_t messageCallout;    // call out function forward decalaration
 SmartThings smartthing(PIN_THING_RX, PIN_THING_TX, messageCallout);  // constructor
@@ -83,12 +86,17 @@ void setNetworkStateLED()
  */
 
 int sensorPin = A0;    // select the input pin for the potentiometer
+int sensorPin2 = A1;
 int ledPin = 13;      // select the pin for the LED
 int sensorValue = 0;  // variable to store the value coming from the sensor
+int sensorValue2 = 0;
+boolean isSensing = false;
+
 
 void setup() {
   // setup default state of global variables
   isDebugEnabled = true;
+  
   stateLED = 0;                 // matches state of hardware pin set below
   stateNetwork = STATE_JOINED;  // set to joined to keep state off if off
   
@@ -108,28 +116,54 @@ void loop() {
   // Code left here to help debut network connections
   setNetworkStateLED();
   
-  Serial.println("waiting");
+  //Serial.println("waiting");
   // read the value from the sensor:
   sensorValue = analogRead(sensorPin);
+  sensorValue2 = analogRead(sensorPin2);
+  sensorValue = sensorValue + sensorValue2;
+  Serial.print("total sensorValue: ");
+  Serial.print(sensorValue);
+  // we'll need to change the range from the analog reading (0-1023) down to the range
+  // used by analogWrite (0-255) with map!
+  Serial.print(", mapped value: ");
+  Serial.println(map(sensorValue, LOW_MARK, HIGH_MARK, 0, 100));
+  sensorValue = map(sensorValue, LOW_MARK, HIGH_MARK, 0, 100);
+ 
   // turn the ledPin on
   digitalWrite(ledPin, HIGH);
-  Serial.print("sensorValue: ");
-  Serial.println(sensorValue);
   
-  if(sensorValue >= 100){
-    Serial.println("announcing sensorValue: ");
+  
+  if(sensorValue >= MIN_THRESHOLD){
+    Serial.print("sending force : ");
     Serial.println(sensorValue);
-    smartthing.send("sensorValue");
-  }
+    smartthing.send("humidity: " + String(sensorValue) );
+    isSensing = true;
     //smartthing.shieldSetLED(0, 2, 0); // green
-  // stop the program for <sensorValue> milliseconds:
-  delay(sensorValue);
+    cycleLED();
+  }
+  
+  if(sensorValue <= MIN_THRESHOLD && isSensing) {
+    isSensing = false;
+    Serial.print("sending force: ");
+    Serial.println(sensorValue);
+    smartthing.send("humidity: " + String(sensorValue) );
+    smartthing.shieldSetLED(0, 0, 0); // off
+  }
+  
+  // stop the progra;m for <sensorValue> milliseconds:
+  delay(sensorValue > 0 ? sensorValue : 0);
   
   //smartthing.shieldSetLED(0, 0, 0); // off
   // turn the ledPin off:
   digitalWrite(ledPin, LOW);
-  // stop the program for for <sensorValue> milliseconds:
-  delay(sensorValue);
+  
+  
+  
+  
+  
+  
+  
+  
   
 }
 
@@ -144,3 +178,13 @@ void messageCallout(String message)
   }
 
 }
+
+void cycleLED() {
+    smartthing.shieldSetLED(1, 0, 0); // red
+    smartthing.shieldSetLED(0, 1, 0); // green
+    smartthing.shieldSetLED(0, 0, 1); // blue
+    smartthing.shieldSetLED(1, 0, 0); // red
+    smartthing.shieldSetLED(0, 1, 0); // green
+    smartthing.shieldSetLED(0, 0, 1); // blue
+    smartthing.shieldSetLED(0, 0, 0); // off 
+}  
