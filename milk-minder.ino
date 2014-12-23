@@ -5,9 +5,7 @@
 #define PIN_LED           13
 #define PIN_THING_RX      3
 #define PIN_THING_TX      2
-#define MIN_THRESHOLD     30
-#define LOW_MARK          1080
-#define HIGH_MARK          1275
+#define MIN_THRESHOLD     0
 
 SmartThingsCallout_t messageCallout;    // call out function forward decalaration
 SmartThings smartthing(PIN_THING_RX, PIN_THING_TX, messageCallout);  // constructor
@@ -125,16 +123,24 @@ void loop() {
   Serial.print(sensorValue);
   // we'll need to change the range from the analog reading (0-1023) down to the range
   // used by analogWrite (0-255) with map!
+  sensorValue = map(sensorValue, 1000, 1300, 0, 100);
   Serial.print(", mapped value: ");
-  Serial.println(map(sensorValue, LOW_MARK, HIGH_MARK, 0, 100));
-  sensorValue = map(sensorValue, LOW_MARK, HIGH_MARK, 0, 100);
- 
+  Serial.println(sensorValue);
+  
+  
+ //offset  middle tier reading
+  sensorValue = sensorValue >= 90 && sensorValue <= 95 ? map(sensorValue, 90, 95, 10, 99) : sensorValue;
+  
+  //set caps
+  sensorValue = sensorValue > 100 ? 100 : sensorValue;
+  sensorValue = sensorValue < 0 ? 0 : sensorValue;
+  
   // turn the ledPin on
   digitalWrite(ledPin, HIGH);
   
   
   if(sensorValue >= MIN_THRESHOLD){
-    Serial.print("sending force : ");
+    Serial.print("sending force: ");
     Serial.println(sensorValue);
     smartthing.send("humidity: " + String(sensorValue) );
     isSensing = true;
@@ -150,21 +156,12 @@ void loop() {
     smartthing.shieldSetLED(0, 0, 0); // off
   }
   
-  // stop the progra;m for <sensorValue> milliseconds:
-  delay(sensorValue > 0 ? sensorValue : 0);
+  // stop the program for <sensorValue> milliseconds:
+  delay(sensorValue);
   
   //smartthing.shieldSetLED(0, 0, 0); // off
   // turn the ledPin off:
   digitalWrite(ledPin, LOW);
-  
-  
-  
-  
-  
-  
-  
-  
-  
 }
 
 void messageCallout(String message)
