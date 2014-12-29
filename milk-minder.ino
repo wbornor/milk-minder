@@ -1,11 +1,11 @@
 //*****************************************************************************
 #include <SoftwareSerial.h>   
 #include <SmartThings.h>
+#include "Statistic.h" //http://playground.arduino.cc/Main/Statistics
 
 #define PIN_LED           13
 #define PIN_THING_RX      3
 #define PIN_THING_TX      2
-#define MIN_THRESHOLD     0
 
 SmartThingsCallout_t messageCallout;    // call out function forward decalaration
 SmartThings smartthing(PIN_THING_RX, PIN_THING_TX, messageCallout);  // constructor
@@ -53,42 +53,12 @@ void setNetworkStateLED()
 }
 
 
-
-/*
-  Analog Input
- Demonstrates analog input by reading an analog sensor on analog pin 0 and
- turning on and off a light emitting diode(LED)  connected to digital pin 13.
- The amount of time the LED will be on and off depends on
- the value obtained by analogRead().
-
- The circuit:
- * Potentiometer attached to analog input 0
- * center pin of the potentiometer to the analog pin
- * one side pin (either one) to ground
- * the other side pin to +5V
- * LED anode (long leg) attached to digital output 13
- * LED cathode (short leg) attached to ground
-
- * Note: because most Arduinos have a built-in LED attached
- to pin 13 on the board, the LED is optional.
-
-
- Created by David Cuartielles
- modified 30 Aug 2011
- By Tom Igoe
-
- This example code is in the public domain.
-
- http://arduino.cc/en/Tutorial/AnalogInput
-
- */
-
 int sensorPin = A0;    // select the input pin for the potentiometer
 int sensorPin2 = A1;
 int ledPin = 13;      // select the pin for the LED
 int sensorValue = 0;  // variable to store the value coming from the sensor
 int sensorValue2 = 0;
-boolean isSensing = false;
+Statistic stats;
 
 
 void setup() {
@@ -105,6 +75,8 @@ void setup() {
     Serial.begin(9600);         // setup serial with a baud rate of 9600
     Serial.println("setup..");  // print out 'setup..' on start
   }
+  
+  stats.clear();
 }
 
 void loop() {
@@ -117,52 +89,85 @@ void loop() {
   //Serial.println("waiting");
   // read the value from the sensor:
   sensorValue = analogRead(sensorPin);
-  sensorValue2 = analogRead(sensorPin2);
-  sensorValue = sensorValue + sensorValue2;
-  Serial.print("total sensorValue: ");
+  Serial.print("fsr1: ");
   Serial.print(sensorValue);
+  
+  sensorValue2 = analogRead(sensorPin2);
+  Serial.print(", fsr2: ");
+  Serial.print(sensorValue2);
+  
+  sensorValue = sensorValue + sensorValue2;
+  Serial.print(", TOTAL: ");
+  Serial.print(sensorValue);
+  
   // we'll need to change the range from the analog reading (0-1023) down to the range
   // used by analogWrite (0-255) with map!
   sensorValue = map(sensorValue, 1000, 1300, 0, 100);
-  Serial.print(", mapped value: ");
-  Serial.println(sensorValue);
-  
-  
- //offset  middle tier reading
-  sensorValue = sensorValue >= 90 && sensorValue <= 95 ? map(sensorValue, 90, 95, 10, 99) : sensorValue;
+
+  //offset  middle tier reading
+  //sensorValue = sensorValue >= 90 && sensorValue <= 95 ? map(sensorValue, 90, 95, 10, 99) : sensorValue;
   
   //set caps
   sensorValue = sensorValue > 100 ? 100 : sensorValue;
   sensorValue = sensorValue < 0 ? 0 : sensorValue;
   
+  Serial.print(", MAPPED: ");
+  Serial.print(sensorValue);
+  
+  stats.add(sensorValue);
+
+  Serial.print(", cnt: ");
+  Serial.print(stats.count()); 
+
+  Serial.print(", avg: ");
+  Serial.print(stats.average(), 4);
+
+  Serial.print(", stddev: ");
+
+  Serial.print(stats.pop_stdev(), 4);
+ 
+  if (stats.pop_stdev() > 5  || stats.count() > 500) {
+    announceForce(sensorValue);
+    stats.clear();
+  }
+  
+  if ( stats.count() < 10 ) {
+    announceForce(sensorValue);
+  }
+  
   // turn the ledPin on
   digitalWrite(ledPin, HIGH);
-  
-  
-  if(sensorValue >= MIN_THRESHOLD){
-    Serial.print("sending force: ");
-    Serial.println(sensorValue);
-    smartthing.send("humidity: " + String(sensorValue) );
-    isSensing = true;
-    //smartthing.shieldSetLED(0, 2, 0); // green
-    cycleLED();
-  }
-  
-  if(sensorValue <= MIN_THRESHOLD && isSensing) {
-    isSensing = false;
-    Serial.print("sending force: ");
-    Serial.println(sensorValue);
-    smartthing.send("humidity: " + String(sensorValue) );
-    smartthing.shieldSetLED(0, 0, 0); // off
-  }
   
   // stop the program for <sensorValue> milliseconds:
   delay(sensorValue);
   
-  //smartthing.shieldSetLED(0, 0, 0); // off
   // turn the ledPin off:
   digitalWrite(ledPin, LOW);
+  Serial.println();
 }
+
+void announceForce(int force) {
+    Serial.print(", sending force: ");
+    Serial.print(sensorValue);
+    smartthing.send("humidity: " + String(sensorValue) );
+    networkTrafficLED();
+}
+
+void networkTrafficLED() {
+    smartthing.shieldSetLED(0, 3, 0); // green
+    smartthing.shieldSetLED(1, 0, 0); // red
+    smartthing.shieldSetLED(0, 0, 0); // off 
+}
+
+void cycleLED() {
+    smartthing.shieldSetLED(1, 0, 0); // red
+    smartthing.shieldSetLED(0, 1, 0); // green
+    smartthing.shieldSetLED(0, 0, 1); // blue
+    smartthing.shieldSetLED(1, 0, 0); // red
+    smartthing.shieldSetLED(0, 1, 0); // green
+    smartthing.shieldSetLED(0, 0, 1); // blue
+    smartthing.shieldSetLED(0, 0, 0); // off 
+}  
 
 void messageCallout(String message)
 {
@@ -176,12 +181,4 @@ void messageCallout(String message)
 
 }
 
-void cycleLED() {
-    smartthing.shieldSetLED(1, 0, 0); // red
-    smartthing.shieldSetLED(0, 1, 0); // green
-    smartthing.shieldSetLED(0, 0, 1); // blue
-    smartthing.shieldSetLED(1, 0, 0); // red
-    smartthing.shieldSetLED(0, 1, 0); // green
-    smartthing.shieldSetLED(0, 0, 1); // blue
-    smartthing.shieldSetLED(0, 0, 0); // off 
-}  
+
