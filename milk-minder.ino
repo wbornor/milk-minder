@@ -55,7 +55,8 @@ void setNetworkStateLED()
 
 int sensorPin = A0;    // select the input pin for the potentiometer
 int sensorPin2 = A1;
-int ledPin = 13;      // select the pin for the LED
+int ledPin = 8;      // select the pin for the LED
+int LEDbrightness;
 int sensorValue = 0;  // variable to store the value coming from the sensor
 int sensorValue2 = 0;
 Statistic stats;
@@ -86,23 +87,23 @@ void loop() {
   // Code left here to help debut network connections
   setNetworkStateLED();
   
-  //Serial.println("waiting");
   // read the value from the sensor:
   sensorValue = analogRead(sensorPin);
   Serial.print("fsr1: ");
   Serial.print(sensorValue);
+  LEDbrightness = map(sensorValue, 0, 1023, 0, 255);
   
   sensorValue2 = analogRead(sensorPin2);
   Serial.print(", fsr2: ");
   Serial.print(sensorValue2);
   
-  sensorValue = sensorValue + sensorValue2;
-  Serial.print(", TOTAL: ");
-  Serial.print(sensorValue);
+  //sensorValue = (sensorValue + sensorValue2)/2;
+  //Serial.print(", TOTAL: ");
+  //Serial.print(sensorValue);
   
   // we'll need to change the range from the analog reading (0-1023) down to the range
   // used by analogWrite (0-255) with map!
-  sensorValue = map(sensorValue, 1000, 1300, 0, 100);
+  sensorValue = map(sensorValue, 700, 900, 0, 100);
 
   //offset  middle tier reading
   //sensorValue = sensorValue >= 90 && sensorValue <= 95 ? map(sensorValue, 90, 95, 10, 99) : sensorValue;
@@ -111,7 +112,7 @@ void loop() {
   sensorValue = sensorValue > 100 ? 100 : sensorValue;
   sensorValue = sensorValue < 0 ? 0 : sensorValue;
   
-  Serial.print(", MAPPED: ");
+  Serial.print(", mapped: ");
   Serial.print(sensorValue);
   
   stats.add(sensorValue);
@@ -126,7 +127,7 @@ void loop() {
 
   Serial.print(stats.pop_stdev(), 4);
  
-  if (stats.pop_stdev() > 5  || stats.count() > 500) {
+  if (stats.pop_stdev() > 5  || stats.count() >= 500) {
     announceForce(sensorValue);
     stats.clear();
   }
@@ -134,15 +135,17 @@ void loop() {
   if ( stats.count() < 10 ) {
     announceForce(sensorValue);
   }
+  else {
+    // turn the ledPin off:
+    digitalWrite(ledPin, LOW);
+  }
   
-  // turn the ledPin on
-  digitalWrite(ledPin, HIGH);
+  
   
   // stop the program for <sensorValue> milliseconds:
   delay(sensorValue);
   
-  // turn the ledPin off:
-  digitalWrite(ledPin, LOW);
+  
   Serial.println();
 }
 
@@ -151,6 +154,9 @@ void announceForce(int force) {
     Serial.print(sensorValue);
     smartthing.send("humidity: " + String(sensorValue) );
     networkTrafficLED();
+    
+    // turn the ledPin on
+    digitalWrite(ledPin, LEDbrightness);
 }
 
 void networkTrafficLED() {
