@@ -152,7 +152,7 @@ void loop() {
 void announceForce(int force) {
     Serial.print(", sending force: ");
     Serial.print(sensorValue);
-    smartthing.send("humidity: " + String(sensorValue) );
+    smartthing.send("fsr1: " + String(sensorValue) );
     networkTrafficLED();
     
     // turn the ledPin on
