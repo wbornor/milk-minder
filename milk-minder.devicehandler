@@ -30,7 +30,7 @@ metadata {
 	// UI tile definitions
 	tiles {
         valueTile("fsr1", "device.fsr1", width: 2, height: 2) {
-			state ("Mass", label:'${currentValue}', unit:"%", 
+			state ("Mass", label:'${currentValue}% Milk', unit:"%", 
                  backgroundColors:[
                     [value: 15, color: "#bc2323"], 	//red
 					[value: 30, color: "#d04e00"], 	//orange
