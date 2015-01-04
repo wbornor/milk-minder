@@ -53,8 +53,8 @@ void setNetworkStateLED()
 }
 
 
-int sensorPin = A0;    // select the input pin for the potentiometer
-int sensorPin2 = A1;
+int sensorPin = A1;    // select the input pin for the potentiometer
+int sensorPin2 = A0;
 int ledPin = 8;      // select the pin for the LED
 int LEDbrightness;
 int sensorValue = 0;  // variable to store the value coming from the sensor
@@ -103,7 +103,7 @@ void loop() {
   
   // we'll need to change the range from the analog reading (0-1023) down to the range
   // used by analogWrite (0-255) with map!
-  sensorValue = map(sensorValue, 700, 900, 0, 100);
+  sensorValue = map(sensorValue, 780, 860, 0, 100);
 
   //offset  middle tier reading
   //sensorValue = sensorValue >= 90 && sensorValue <= 95 ? map(sensorValue, 90, 95, 10, 99) : sensorValue;
@@ -132,7 +132,7 @@ void loop() {
     stats.clear();
   }
   
-  if ( stats.count() < 10 ) {
+  if ( stats.count() < 5 ) {
     announceForce(sensorValue);
   }
   else {
@@ -160,7 +160,7 @@ void announceForce(int force) {
 }
 
 void networkTrafficLED() {
-    smartthing.shieldSetLED(0, 3, 0); // green
+    smartthing.shieldSetLED(0, 2, 0); // green
     smartthing.shieldSetLED(1, 0, 0); // red
     smartthing.shieldSetLED(0, 0, 0); // off 
 }
