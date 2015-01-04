@@ -29,13 +29,11 @@ metadata {
 
 	// UI tile definitions
 	tiles {
-        valueTile("fsr1", "device.fsr1", width: 2, height: 2) {
-			state ("Mass", label:'Milk ${currentValue}%', unit:"%", 
-                 backgroundColors:[
-                    [value: 15, color: "#bc2323"], 	//red
-					[value: 30, color: "#d04e00"], 	//orange
-					[value: 50, color: "#44b621"]	//green
-				])
+	        standardTile("fsr1", "device.fsr1", width: 2, height: 2, canChangeIcon: true, canChangeBackground: true, inactiveLabel: false) {
+	            state "--", label: '${name}', backgroundColor: "#bc2323"
+	            state "LOW", label: '${name}', backgroundColor: "#bc2323" 
+		    state "MEDIUM", label: '${name}', backgroundColor: "#1e9cbb"
+	            state "FULL", label: '${name}', backgroundColor: "#79b821"
 		}
 
 		main(["fsr1"])
@@ -45,7 +43,7 @@ metadata {
 
 // Parse incoming device messages to generate events
 def parse(String description) {
-	log.debug "description: ${description}"
+    log.debug "description: ${description}"
     if(!description?.startsWith("fsr")){
       description = zigbee.parse(description)?.text
     }
@@ -57,26 +55,34 @@ def parse(String description) {
     def name = parseName(description)
     def value = parseValue(description)
     def result = createEvent(name: name, value: value)
-	log.debug "Parse returned ${result?.descriptionText}"
-    
-	return result
+    log.debug "Parse returned ${result?.descriptionText}"
+
+    return result
 }
 
 private String parseName(String description) {
-	if (description?.startsWith("fsr1: ")) {
+    if (description?.startsWith("fsr1: ")) {
       return "fsr1"
-      
     }
-	null
+    null
 }
 
 private String parseValue(String description) {
-	if (description?.startsWith("fsr1: ")) {
-       log.debug ("payload: ${description}")
-       def fsr = (description - "fsr1: ").trim()
-       if (fsr.isNumber()) {
-			return Math.round(new BigDecimal(fsr)).toString()
-		}
+  if (description?.startsWith("fsr1: ")) {
+    log.debug ("payload: ${description}")
+    def fsr = (description - "fsr1: ").trim()
+    if (fsr.isNumber()) {
+       fsr = Math.round(new BigDecimal(fsr))
     }
-	null
+    if ( fsr == 0 ) {
+      	return "--"
+    } else if ( fsr < 20 ) {
+      	return "LOW"
+    } else if ( fsr < 70 ) {
+	return "MEDIUM"
+    } else {
+      	return "FULL"
+    }
+  }
+  null
 }
