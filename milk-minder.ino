@@ -19,7 +19,7 @@ SmartThings smartthing(PIN_THING_RX, PIN_THING_TX, messageCallout);  // construc
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -168,16 +168,15 @@ void loop() {
     
     for(int i = 0; i < 1; i++){
       delay(100);
+      announceForce(sensorValue);
       if(sensorValue < 30) {
-        announceForce(sensorValue);
-        theaterChase(strip.Color(255, 0, 0), 10); // red
+        
+        buildCells(strip.Color(255, 0, 0), 500); // red
         
       } else if(sensorValue < 60) {
-          announceForce(sensorValue);
-          theaterChase(strip.Color(0, 0, 255), 10); // blue
+          buildCells(strip.Color(0, 0, 255), 500); // blue
       } else {
-        announceForce(sensorValue);
-        theaterChase(strip.Color(0, 255, 0), 50); // green
+        buildCells(strip.Color(0, 255, 0), 500); // green
       }
     }
   } else if ( stats.count() == 5) {
@@ -189,7 +188,6 @@ void loop() {
   }
   
   //strandTest();
-  
   
   // stop the program for <sensorValue> milliseconds:
   //delay(sensorValue);
@@ -235,7 +233,49 @@ void messageCallout(String message)
     Serial.print(message);
     Serial.println("' ");
   }
+  
+  if (message == "strand-test") {
+      strandTest();
+  } else if (message == "on") {
+      strandOn();
+  } else if (message == "off") {
+      strandOff();
+  } else if (message == "build-cells") {
+      buildCells(strip.Color(0, 255, 0), 500);
+  } else  {
+    Serial.print("unknown message: '");
+  }
+}
 
+void buildCells(uint32_t color, uint8_t wait) {
+  uint16_t i;
+  uint8_t third = 4;
+  for(i=0; i< third; i++) {
+      strip.setPixelColor(i, color);
+  }
+  strip.show();
+  delay(wait);
+  
+  for(i=third; i< third*2; i++) {
+      strip.setPixelColor(i, color);
+  }
+  strip.show();
+  delay(wait);
+  
+  for(i=third*2; i< third*3; i++) {
+      strip.setPixelColor(i, color);
+  }
+  strip.show();
+  delay(wait*10);
+  colorWipe(strip.Color(0, 0, 0), 3); // Off
+}
+
+void strandOn(){
+  colorWipe(strip.Color(255, 255, 255), 1); // White
+}
+
+void strandOff(){
+  colorWipe(strip.Color(0, 0, 0), 1); // Off 
 }
 
 void strandBlip(){
