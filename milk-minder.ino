@@ -1,16 +1,7 @@
 //*****************************************************************************
-#include <SoftwareSerial.h>   
-#include <SmartThings.h>
+//#include <SoftwareSerial.h>   
 #include <Adafruit_NeoPixel.h>
 #include "Statistic.h" //http://playground.arduino.cc/Main/Statistics
-
-#define PIN_LED_STRIP     6
-#define PIN_LED           13
-#define PIN_THING_RX      3
-#define PIN_THING_TX      2
-
-SmartThingsCallout_t messageCallout;    // call out function forward decalaration
-SmartThings smartthing(PIN_THING_RX, PIN_THING_TX, messageCallout);  // constructor
 
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
@@ -19,7 +10,7 @@ SmartThings smartthing(PIN_THING_RX, PIN_THING_TX, messageCallout);  // construc
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, PIN_LED_STRIP, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, 6, NEO_GRB + NEO_KHZ800);
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -29,49 +20,10 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, PIN_LED_STRIP, NEO_GRB + NEO_KHZ
 
 bool isDebugEnabled;    // enable or disable debug in this example
 int stateLED;           // state to track last set value of LED
-int stateNetwork;       // state of the network 
 
 
-void setNetworkStateLED()
-{
-  SmartThingsNetworkState_t tempState = smartthing.shieldGetLastNetworkState();
-  if (tempState != stateNetwork)
-  {
-    switch (tempState)
-    {
-      case STATE_NO_NETWORK:
-        if (isDebugEnabled) Serial.println("NO_NETWORK");
-        smartthing.shieldSetLED(2, 0, 0); // red
-        break;
-      case STATE_JOINING:
-        if (isDebugEnabled) Serial.println("JOINING");
-        smartthing.shieldSetLED(2, 0, 0); // red
-        break;
-      case STATE_JOINED:
-        if (isDebugEnabled) Serial.println("JOINED");
-        smartthing.shieldSetLED(0, 0, 0); // off
-        break;
-      case STATE_JOINED_NOPARENT:
-        if (isDebugEnabled) Serial.println("JOINED_NOPARENT");
-        smartthing.shieldSetLED(2, 0, 2); // purple
-        break;
-      case STATE_LEAVING:
-        if (isDebugEnabled) Serial.println("LEAVING");
-        smartthing.shieldSetLED(2, 0, 0); // red
-        break;
-      default:
-      case STATE_UNKNOWN:
-        if (isDebugEnabled) Serial.println("UNKNOWN");
-        smartthing.shieldSetLED(0, 2, 0); // green
-        break;
-    }
-    stateNetwork = tempState; 
-  }
-}
-
-
-int sensorPin = A1;    // select the input pin for the potentiometer
-int sensorPin2 = A0;
+int sensorPin = 0;    // select the input pin for the potentiometer
+int sensorPin2 = 1;
 int ledPin = 8;      // select the pin for the LED
 int LEDbrightness;
 int sensorValue = 0;  // variable to store the value coming from the sensor
@@ -82,18 +34,9 @@ Statistic stats;
 void setup() {
   // setup default state of global variables
   isDebugEnabled = true;
-  
-  stateLED = 0;                 // matches state of hardware pin set below
-  stateNetwork = STATE_JOINED;  // set to joined to keep state off if off
-  
+    
   // declare the ledPin as an OUTPUT:
   pinMode(ledPin, OUTPUT);
-  if (isDebugEnabled)
-  { // setup debug serial port
-    Serial.begin(9600);         // setup serial with a baud rate of 9600
-    Serial.println("setup..");  // print out 'setup..' on start
-  }
-  
   stats.clear();
   
   strip.begin();
@@ -101,39 +44,11 @@ void setup() {
 }
 
 void loop() {
-  // run smartthing logic
-  smartthing.run();
-  
-  // Code left here to help debut network connections
-  setNetworkStateLED();
-  
-  // read the value from the sensor:
-  Serial.print("fsr0: ");
-  Serial.print(A0);
-  
-  
-  Serial.print(", fsr1: ");
-  Serial.print(sensorValue);
   LEDbrightness = map(sensorValue, 0, 1023, 0, 255);
   
-  sensorValue2 = analogRead(A2);
-  Serial.print(", fsr2: ");
-  Serial.print(sensorValue2);
+  sensorValue2 = analogRead(1);
+  sensorValue = analogRead(0);
  
-  Serial.print(", fsr3: ");
-  Serial.print(analogRead(A3));
-  
-  Serial.print(", fsr4: ");
-  Serial.print(analogRead(A4));
-  sensorValue = analogRead(A4);
-  
-  Serial.print(", fsr5: ");
-  Serial.print(analogRead(A5));
-  
-  //sensorValue = (sensorValue + sensorValue2)/2;
-  //Serial.print(", TOTAL: ");
-  //Serial.print(sensorValue);
-  
   // we'll need to change the range from the analog reading (0-1023) down to the range
   // used by analogWrite (0-255) with map!
   sensorValue = map(sensorValue, 0, 1000, 0, 100);
@@ -145,21 +60,8 @@ void loop() {
   sensorValue = sensorValue > 100 ? 100 : sensorValue;
   sensorValue = sensorValue < 0 ? 0 : sensorValue;
   
-  Serial.print(", mapped: ");
-  Serial.print(sensorValue);
-  
   stats.add(sensorValue);
 
-  Serial.print(", cnt: ");
-  Serial.print(stats.count()); 
-
-  Serial.print(", avg: ");
-  Serial.print(stats.average(), 4);
-
-  Serial.print(", stddev: ");
-
-  Serial.print(stats.pop_stdev(), 4);
- 
   if (stats.pop_stdev() > 5  /*|| stats.count() >= 500*/) {
     stats.clear();
   }
@@ -167,8 +69,8 @@ void loop() {
   if ( stats.count() < 2 ) {
     
     for(int i = 0; i < 1; i++){
+      digitalWrite(ledPin, LOW);
       delay(100);
-      announceForce(sensorValue);
       if(sensorValue < 30) {
         
         buildCells(strip.Color(255, 0, 0), 500); // red
@@ -180,7 +82,9 @@ void loop() {
       }
     }
   } else if ( stats.count() == 5) {
-   colorWipe(strip.Color(0, 0, 0), 1); // Off 
+   colorWipe(strip.Color(0, 0, 0), 1); // Off
+   // turn the ledPin off:
+   digitalWrite(ledPin, LOW); 
   }
   else {
     // turn the ledPin off:
@@ -192,59 +96,6 @@ void loop() {
   // stop the program for <sensorValue> milliseconds:
   //delay(sensorValue);
   
-  Serial.println();
-}
-
-void announceForce(int force) {
-    Serial.print(", sending force: ");
-    Serial.print(sensorValue);
-    smartthing.send("fsr1: " + String(sensorValue) );
-    networkTrafficLED();
-    
-    // turn the ledPin on
-    digitalWrite(ledPin, LEDbrightness);
-    
-    //strandBlip();
-    
-}
-
-void networkTrafficLED() {
-    smartthing.shieldSetLED(0, 2, 0); // green
-    smartthing.shieldSetLED(1, 0, 0); // red
-    smartthing.shieldSetLED(0, 0, 0); // off 
-}
-
-void cycleLED() {
-    smartthing.shieldSetLED(1, 0, 0); // red
-    smartthing.shieldSetLED(0, 1, 0); // green
-    smartthing.shieldSetLED(0, 0, 1); // blue
-    smartthing.shieldSetLED(1, 0, 0); // red
-    smartthing.shieldSetLED(0, 1, 0); // green
-    smartthing.shieldSetLED(0, 0, 1); // blue
-    smartthing.shieldSetLED(0, 0, 0); // off 
-}  
-
-void messageCallout(String message)
-{
-  // if debug is enabled print out the received message
-  if (isDebugEnabled)
-  {
-    Serial.print("Received message: '");
-    Serial.print(message);
-    Serial.println("' ");
-  }
-  
-  if (message == "strand-test") {
-      strandTest();
-  } else if (message == "on") {
-      strandOn();
-  } else if (message == "off") {
-      strandOff();
-  } else if (message == "build-cells") {
-      buildCells(strip.Color(0, 255, 0), 500);
-  } else  {
-    Serial.print("unknown message: '");
-  }
 }
 
 void buildCells(uint32_t color, uint8_t wait) {
@@ -292,6 +143,7 @@ void strandTest(){
   colorWipe(strip.Color(0, 255, 0), 50); // Green
   colorWipe(strip.Color(0, 0, 255), 50); // Blue
   // Send a theater pixel chase in...
+  /*
   theaterChase(strip.Color(127, 127, 127), 50); // White
   theaterChase(strip.Color(127,   0,   0), 50); // Red
   theaterChase(strip.Color(  0,   0, 127), 50); // Blue
@@ -299,7 +151,7 @@ void strandTest(){
   rainbow(20);
   rainbowCycle(20);
   theaterChaseRainbow(50);
-  
+  */
 }
 
 // Fill the dots one after the other with a color
@@ -311,6 +163,7 @@ void colorWipe(uint32_t c, uint8_t wait) {
   }
 }
 
+/*
 void rainbow(uint8_t wait) {
   uint16_t i, j;
 
@@ -386,4 +239,4 @@ uint32_t Wheel(byte WheelPos) {
    return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
   }
 }
-
+*/
