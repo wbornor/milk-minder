@@ -10,7 +10,7 @@
 //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, 6, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, 1, NEO_GRB + NEO_KHZ800);
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -44,10 +44,17 @@ void setup() {
 }
 
 void loop() {
-  LEDbrightness = map(sensorValue, 0, 1023, 0, 255);
+  //strandBlip();
+   //digitalWrite(ledPin, HIGH);
   
-  sensorValue2 = analogRead(1);
-  sensorValue = analogRead(0);
+  
+  //sensorValue2 = analogRead(1);
+  sensorValue = analogRead(1);
+  
+  //Set LEDbrightness
+  //analogWrite(ledPin, map(sensorValue, 0, 1023, 0, 255));
+  digitalWrite(ledPin, HIGH);
+  
  
   // we'll need to change the range from the analog reading (0-1023) down to the range
   // used by analogWrite (0-255) with map!
@@ -129,12 +136,14 @@ void strandOff(){
   colorWipe(strip.Color(0, 0, 0), 1); // Off 
 }
 
+/*
 void strandBlip(){
   
   colorWipe(strip.Color(0, 255, 0), 0.5); // Green
   colorWipe(strip.Color(255, 0, 0), 0.1); // Red
   colorWipe(strip.Color(0, 0, 0), 1); // Off
 }
+*/
 
 void strandTest(){
 
