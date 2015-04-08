@@ -18,16 +18,10 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(12, 1, NEO_GRB + NEO_KHZ800);
 // on a live circuit...if you must, connect GND first.
 
 
-bool isDebugEnabled;    // enable or disable debug in this example
-int stateLED;           // state to track last set value of LED
+bool isDebugEnabled;    // enable or disable debug in this exampl
 
-
-int sensorPin = 0;    // select the input pin for the potentiometer
-int sensorPin2 = 1;
-int ledPin = 8;      // select the pin for the LED
-int LEDbrightness;
+int ledPin = 1;      // select the pin for the LED
 int sensorValue = 0;  // variable to store the value coming from the sensor
-int sensorValue2 = 0;
 Statistic stats;
 
 
@@ -49,16 +43,23 @@ void loop() {
   
   
   //sensorValue2 = analogRead(1);
-  sensorValue = analogRead(1);
+  sensorValue = analogRead(0);
   
+     
+      
   //Set LEDbrightness
   //analogWrite(ledPin, map(sensorValue, 0, 1023, 0, 255));
-  digitalWrite(ledPin, HIGH);
   
  
   // we'll need to change the range from the analog reading (0-1023) down to the range
   // used by analogWrite (0-255) with map!
   sensorValue = map(sensorValue, 0, 1000, 0, 100);
+
+  
+  digitalWrite(ledPin, HIGH);
+  delay(1000);
+  digitalWrite(ledPin, LOW);
+  delay(5000);
 
   //offset  middle tier reading
   //sensorValue = sensorValue >= 90 && sensorValue <= 95 ? map(sensorValue, 90, 95, 10, 99) : sensorValue;
@@ -69,18 +70,19 @@ void loop() {
   
   stats.add(sensorValue);
 
-  if (stats.pop_stdev() > 5  /*|| stats.count() >= 500*/) {
+  if (stats.pop_stdev() > 5  || stats.count() >= 500) {
     stats.clear();
   }
   
   if ( stats.count() < 2 ) {
     
     for(int i = 0; i < 1; i++){
-      digitalWrite(ledPin, LOW);
-      delay(100);
+      digitalWrite(ledPin, HIGH);
+      //delay(100);
       if(sensorValue < 30) {
         
         buildCells(strip.Color(255, 0, 0), 500); // red
+        //analogWrite(ledPin, map(sensorValue, 0, 1023, 0, 255));
         
       } else if(sensorValue < 60) {
           buildCells(strip.Color(0, 0, 255), 500); // blue
